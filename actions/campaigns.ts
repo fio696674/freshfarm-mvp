@@ -35,6 +35,7 @@ export async function recordGamePlay(
  * Validates whether a user is eligible to play the game.
  */
 export async function checkGameEligibility(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   userId: string,
   gameId: string
 ): Promise<{ eligible: boolean; reason?: string }> {

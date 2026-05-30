@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import "./globals.css";
 
 const inter = Inter({
@@ -11,11 +12,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Fresh Farm - Farm-to-Table Egg Delivery",
+  title: "FreshFarm — Farm Fresh Eggs, Under 10 Days Old",
   description:
-    "Order fresh, pasture-raised eggs delivered straight from the farm to your door.",
+    "Ultra-fresh eggs delivered directly from our farm. Less than 10 days old. Orlando & Miami.",
   icons: {
     icon: "/favicon.ico",
+  },
+  openGraph: {
+    title: "FreshFarm — Farm Fresh Eggs, Under 10 Days Old",
+    description: "Ultra-fresh eggs delivered directly from our farm. Less than 10 days old. Orlando & Miami.",
+    type: "website",
   },
 };
 
@@ -33,7 +39,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
           <Toaster
             position="top-right"
             richColors

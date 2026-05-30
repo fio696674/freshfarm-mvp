@@ -31,6 +31,11 @@ export default function CheckoutPage() {
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("truck");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Simple delivery radius check — Orlando & Miami zip prefixes
+  const isWithinDeliveryRadius =
+    address.zipCode.trim() === "" ||
+    /^(32[0-9]{2}|33[0-9]{2}|34[0-9]{2})/.test(address.zipCode.trim());
+
   // Redirect if cart is empty
   if (items.length === 0) {
     return (
@@ -165,6 +170,26 @@ export default function CheckoutPage() {
               <div className="mt-6">
                 <AddressForm value={address} onChange={setAddress} />
               </div>
+              {/* Delivery radius warning */}
+              {!isWithinDeliveryRadius && address.zipCode.trim() !== "" && (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 text-lg" aria-hidden="true">
+                      🚚
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">
+                        Delivery may not be available at this address
+                      </p>
+                      <p className="mt-1 text-xs text-amber-700">
+                        We currently deliver to Orlando and Miami areas (zip codes 32xxx–34xxx).
+                        We&apos;ll confirm availability after you place your order.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-8 flex justify-end">
                 <button
                   type="button"

@@ -2,12 +2,14 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { HeroEgg } from "@/components/landing/HeroEgg";
-import { ValueProps } from "@/components/landing/ValueProps";
-import { ProductShowcase } from "@/components/landing/ProductShowcase";
-import { HowItWorks } from "@/components/landing/HowItWorks";
-import { GreatEggscapeTeaser } from "@/components/landing/GreatEggscapeTeaser";
-import { BetaSignup } from "@/components/landing/BetaSignup";
+
+const ValueProps = dynamic(() => import("@/components/landing/ValueProps").then((m) => ({ default: m.ValueProps })));
+const ProductShowcase = dynamic(() => import("@/components/landing/ProductShowcase").then((m) => ({ default: m.ProductShowcase })));
+const HowItWorks = dynamic(() => import("@/components/landing/HowItWorks").then((m) => ({ default: m.HowItWorks })));
+const GreatEggscapeTeaser = dynamic(() => import("@/components/landing/GreatEggscapeTeaser").then((m) => ({ default: m.GreatEggscapeTeaser })));
+const BetaSignup = dynamic(() => import("@/components/landing/BetaSignup").then((m) => ({ default: m.BetaSignup })));
 
 /* ── Framer Motion variants ─────────────────────────────── */
 

@@ -4,6 +4,10 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { HeroEgg } from "@/components/landing/HeroEgg";
 import { ValueProps } from "@/components/landing/ValueProps";
+import { ProductShowcase } from "@/components/landing/ProductShowcase";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { GreatEggscapeTeaser } from "@/components/landing/GreatEggscapeTeaser";
+import { BetaSignup } from "@/components/landing/BetaSignup";
 
 /* ── Framer Motion variants ─────────────────────────────── */
 
@@ -114,6 +118,45 @@ export default function Home() {
 
       {/* ═══════════════════ VALUE PROPS ═══════════════════ */}
       <ValueProps />
+
+      {/* ═══════════════════ PRODUCT SHOWCASE ═══════════════════ */}
+      <ProductShowcase />
+
+      {/* ═══════════════════ HOW IT WORKS ═══════════════════ */}
+      <HowItWorks />
+
+      {/* ═══════════════════ GREAT EGGSCAPE TEASER ═══════════════════ */}
+      <GreatEggscapeTeaser />
+
+      {/* ═══════════════════ BETA SIGNUP ═══════════════════ */}
+      <BetaSignup />
+
+      {/* ═══════════════════ CTA BANNER ═══════════════════ */}
+      <section className="py-20 md:py-32">
+        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <h2 className="text-3xl font-light tracking-tight text-stone-900 md:text-4xl">
+              Ready for fresh eggs?
+            </h2>
+            <p className="mx-auto mt-4 max-w-md text-stone-500">
+              Join thousands of happy customers who never go back to store-bought.
+            </p>
+            <div className="mt-8">
+              <Link
+                href="/register"
+                className="inline-block rounded-full bg-green-600 px-8 py-3 text-base font-medium text-white shadow-lg shadow-green-600/20 transition-colors hover:bg-green-700 hover:shadow-xl active:scale-[0.97]"
+              >
+                Order Now
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </section>
     </>
   );
 }

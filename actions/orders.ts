@@ -1,6 +1,6 @@
 "use server";
 
-import type Stripe from "stripe";
+import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 

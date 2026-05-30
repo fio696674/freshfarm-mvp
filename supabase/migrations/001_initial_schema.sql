@@ -6,7 +6,7 @@
 -- ============================================================================
 
 -- ---------- Extensions ----------
-CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
+-- pg_uuidv7 not available on Supabase hosted; using gen_random_uuid() (UUIDv4);
 
 -- ---------- Helper: updated_at trigger ----------
 CREATE OR REPLACE FUNCTION set_updated_at()
@@ -86,7 +86,7 @@ CREATE TRIGGER on_auth_user_created
 -- products
 -- ============================================================================
 CREATE TABLE products (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT NOT NULL,
   description TEXT,
   price       NUMERIC(10,2) NOT NULL CHECK (price > 0),
@@ -124,7 +124,7 @@ CREATE INDEX idx_products_category ON products (category);
 -- orders
 -- ============================================================================
 CREATE TABLE orders (
-  id                UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id           UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   status            TEXT NOT NULL DEFAULT 'pending'
                       CHECK (status IN (
@@ -156,25 +156,6 @@ CREATE POLICY "Users can update own orders"
   USING ((select auth.uid()) = user_id)
   WITH CHECK ((select auth.uid()) = user_id);
 
-CREATE POLICY "Drivers can view assigned deliveries' orders"
-  ON orders FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM deliveries d
-      WHERE d.order_id = orders.id
-        AND d.driver_id = (select auth.uid())
-    )
-  );
-
-CREATE POLICY "Drivers can update delivery status"
-  ON orders FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM deliveries d
-      WHERE d.order_id = orders.id
-        AND d.driver_id = (select auth.uid())
-    )
-  );
 
 CREATE POLICY "Admins can manage all orders"
   ON orders FOR ALL
@@ -198,7 +179,7 @@ CREATE INDEX idx_orders_pending ON orders (created_at) WHERE status = 'pending';
 -- order_items
 -- ============================================================================
 CREATE TABLE order_items (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id    UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   product_id  UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   quantity    INTEGER NOT NULL CHECK (quantity > 0),
@@ -244,7 +225,7 @@ CREATE INDEX idx_order_items_product_id ON order_items (product_id);
 -- deliveries
 -- ============================================================================
 CREATE TABLE deliveries (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id      UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   driver_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   vehicle_type  TEXT NOT NULL DEFAULT 'bike'
@@ -281,6 +262,28 @@ CREATE POLICY "Admins can manage all deliveries"
     )
   );
 
+-- Drivers can view orders they are delivering
+CREATE POLICY "Drivers can view assigned deliveries orders"
+  ON orders FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM deliveries d
+      WHERE d.order_id = orders.id
+        AND d.driver_id = (select auth.uid())
+    )
+  );
+
+-- Drivers can update delivery status on their assigned orders
+CREATE POLICY "Drivers can update delivery status"
+  ON orders FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM deliveries d
+      WHERE d.order_id = orders.id
+        AND d.driver_id = (select auth.uid())
+    )
+  );
+
 CREATE TRIGGER deliveries_set_updated_at
   BEFORE UPDATE ON deliveries
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -293,7 +296,7 @@ CREATE INDEX idx_deliveries_pending ON deliveries (created_at) WHERE status = 'a
 -- kiosk_pickups
 -- ============================================================================
 CREATE TABLE kiosk_pickups (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id      UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   kiosk_code    TEXT NOT NULL,
   picked_up_at  TIMESTAMPTZ,
@@ -327,7 +330,7 @@ CREATE INDEX idx_kiosk_pickups_order_id ON kiosk_pickups (order_id);
 -- campaigns
 -- ============================================================================
 CREATE TABLE campaigns (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name          TEXT NOT NULL,
   description   TEXT,
   type          TEXT NOT NULL DEFAULT 'promo'
@@ -367,7 +370,7 @@ CREATE INDEX idx_campaigns_active ON campaigns (start_date, end_date) WHERE is_a
 -- ugc_submissions (user-generated content)
 -- ============================================================================
 CREATE TABLE ugc_submissions (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   image_url   TEXT NOT NULL,
   caption     TEXT,
@@ -409,7 +412,7 @@ CREATE INDEX idx_ugc_submissions_user_id ON ugc_submissions (user_id);
 -- farm_locations
 -- ============================================================================
 CREATE TABLE farm_locations (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT NOT NULL,
   address     TEXT NOT NULL,
   latitude    NUMERIC(9,6),

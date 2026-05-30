@@ -147,7 +147,7 @@ export function DeliveryQueue() {
                     <Select
                       value={form.vehicleType}
                       onValueChange={(val) =>
-                        val && updateAssignment(item.id, "vehicleType", val)
+                        val !== null && val !== undefined && updateAssignment(item.id, "vehicleType", val)
                       }
                     >
                       <SelectTrigger className="w-full sm:w-44">

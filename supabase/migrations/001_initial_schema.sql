@@ -5,6 +5,19 @@
 -- FK indexes, partial indexes, RLS policies, triggers, and role grants.
 -- ============================================================================
 
+-- ---------- Helper Functions ----------
+-- SECURITY DEFINER function to check admin role WITHOUT triggering RLS recursion
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = (select auth.uid()) AND role = 'admin'
+  );
+$$;
 -- ---------- Extensions ----------
 -- pg_uuidv7 not available on Supabase hosted; using gen_random_uuid() (UUIDv4);
 
@@ -45,19 +58,13 @@ CREATE POLICY "Users can update own profile"
 CREATE POLICY "Admins can view all profiles"
   ON profiles FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE POLICY "Admins can update all profiles"
   ON profiles FOR UPDATE
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE TRIGGER profiles_set_updated_at
@@ -107,10 +114,7 @@ CREATE POLICY "Anyone can view active products"
 CREATE POLICY "Admins can manage products"
   ON products FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE TRIGGER products_set_updated_at
@@ -160,10 +164,7 @@ CREATE POLICY "Users can update own orders"
 CREATE POLICY "Admins can manage all orders"
   ON orders FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE TRIGGER orders_set_updated_at
@@ -212,10 +213,7 @@ CREATE POLICY "Users can create order items for own orders"
 CREATE POLICY "Admins can manage all order items"
   ON order_items FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE INDEX idx_order_items_order_id ON order_items (order_id);
@@ -256,10 +254,7 @@ CREATE POLICY "Drivers can update own deliveries"
 CREATE POLICY "Admins can manage all deliveries"
   ON deliveries FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 -- Drivers can view orders they are delivering
@@ -318,10 +313,7 @@ CREATE POLICY "Users can view own kiosk pickups"
 CREATE POLICY "Admins can manage all kiosk pickups"
   ON kiosk_pickups FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE INDEX idx_kiosk_pickups_order_id ON kiosk_pickups (order_id);
@@ -353,10 +345,7 @@ CREATE POLICY "Anyone can view active campaigns"
 CREATE POLICY "Admins can manage campaigns"
   ON campaigns FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE TRIGGER campaigns_set_updated_at
@@ -396,10 +385,7 @@ CREATE POLICY "Users can create own UGC"
 CREATE POLICY "Admins can manage all UGC"
   ON ugc_submissions FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE TRIGGER ugc_submissions_set_updated_at
@@ -431,10 +417,7 @@ CREATE POLICY "Anyone can view active farm locations"
 CREATE POLICY "Admins can manage farm locations"
   ON farm_locations FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = (select auth.uid()) AND role = 'admin'
-    )
+    (select is_admin())
   );
 
 CREATE TRIGGER farm_locations_set_updated_at

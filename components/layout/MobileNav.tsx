@@ -8,9 +8,12 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/shared/Logo";
 
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+
 interface MobileNavProps {
   open: boolean;
   onClose: () => void;
+  user?: SupabaseUser | null;
 }
 
 const navLinks = [
@@ -18,16 +21,23 @@ const navLinks = [
   { label: "How It Works", href: "/how-it-works" },
 ];
 
-const authLinks = [
+const guestLinks = [
   { label: "Login", href: "/login" },
   { label: "Order Now", href: "/register" },
+];
+
+const userLinks = [
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "My Orders", href: "/dashboard/orders" },
+  { label: "Profile", href: "/dashboard/profile" },
+  { label: "Sign Out", href: "/signout" },
 ];
 
 /**
  * Full-screen mobile navigation overlay with a slide-in panel from the right.
  * Closes on: X button, link click, or backdrop click.
  */
-export function MobileNav({ open, onClose }: MobileNavProps) {
+export function MobileNav({ open, onClose, user }: MobileNavProps) {
   const pathname = usePathname();
 
   // Close on route change
@@ -121,7 +131,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
                   visible: { transition: { staggerChildren: 0.05 } },
                 }}
               >
-                {authLinks.map((link) => (
+                {(user ? userLinks : guestLinks).map((link) => (
                   <motion.div
                     key={link.href}
                     variants={{

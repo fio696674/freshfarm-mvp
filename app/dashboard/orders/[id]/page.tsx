@@ -113,6 +113,7 @@ export default function OrderDetailPage({
       if (cancelled) return;
 
       if (dbError || !data) {
+        setLoading(false);
         notFound();
         return;
       }
@@ -188,7 +189,7 @@ export default function OrderDetailPage({
             {
               step: "confirmed",
               completed_at:
-                order.status === "confirmed" || order.status === "preparing" || order.status === "out_for_delivery" || order.status === "delivered"
+                ["confirmed", "preparing", "out_for_delivery", "delivered"].includes(order.status)
                   ? order.updated_at
                   : null,
             },

@@ -27,15 +27,6 @@ const MOCK_GALLERY: MockGalleryItem[] = [
   { id: "6", caption: "Sunday baking prep", likes: 15, color: "from-violet-200 to-purple-200" },
 ];
 
-const GRADIENT_COLORS = [
-  "from-amber-200 to-orange-200",
-  "from-yellow-200 to-amber-200",
-  "from-orange-200 to-red-200",
-  "from-green-200 to-emerald-200",
-  "from-rose-200 to-pink-200",
-  "from-violet-200 to-purple-200",
-];
-
 export default function UGCPage() {
   const [caption, setCaption] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -229,7 +220,7 @@ export default function UGCPage() {
         <>
           <h2 className="mb-4 text-lg font-semibold text-stone-800">Community Posts</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {mockLikes.map((item, i) => (
+            {mockLikes.map((item) => (
               <div
                 key={item.id}
                 className="group overflow-hidden rounded-2xl border border-stone-100 bg-white transition-shadow hover:shadow-md"

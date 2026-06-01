@@ -79,8 +79,7 @@ export default function AdminDashboardPage() {
       setPendingOrders(pendingRes.count ?? 0);
 
       const mapped: RecentOrder[] = (recentRes.data ?? []).map((o) => {
-        const profiles = o.profiles as { full_name: string }[] | null;
-        const profile = profiles?.[0] ?? null;
+        const profile = o.profiles as unknown as { full_name: string | null } | null;
         return {
           id: o.id,
           customer: profile?.full_name ?? "—",

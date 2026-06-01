@@ -1,12 +1,7 @@
 import { MetricsCards } from "@/components/admin/MetricsCards";
 
-const recentOrders = [
-  { id: "ORD-1001", customer: "Sarah Mitchell", status: "Pending", total: "$42.99" },
-  { id: "ORD-1002", customer: "James Park", status: "Confirmed", total: "$27.50" },
-  { id: "ORD-1003", customer: "Maria Garcia", status: "In Transit", total: "$65.00" },
-  { id: "ORD-1004", customer: "David Chen", status: "Delivered", total: "$34.75" },
-  { id: "ORD-1005", customer: "Emily Johnson", status: "Confirmed", total: "$51.20" },
-];
+// Fallback data for when Supabase is not available
+const recentOrders: any[] = [];
 
 const statusDotColor: Record<string, string> = {
   Pending: "bg-amber-400",

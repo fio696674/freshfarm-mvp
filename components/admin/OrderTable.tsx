@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 
 type OrderStatus = "pending" | "confirmed" | "in_transit" | "delivered";
 
@@ -14,7 +16,7 @@ interface Order {
   date: string;
 }
 
-const mockOrders: Order[] = [
+const defaultOrders: Order[] = [
   {
     id: "ORD-1001",
     customer: "Sarah Mitchell",

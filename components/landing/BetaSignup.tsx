@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { MapPin } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 /* ── BetaSignup component ───────────────────────────────── */
 
@@ -10,9 +11,14 @@ export function BetaSignup() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email.trim()) {
+      const supabase = createClient();
+      await supabase.from("beta_signups").upsert(
+        { email: email.trim() },
+        { onConflict: "email" }
+      );
       setSubmitted(true);
     }
   };

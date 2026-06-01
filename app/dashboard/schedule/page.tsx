@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Mock recurring delivery days (day-of-month)
-const DELIVERY_DAYS = [3, 10, 17, 24];
+import { createClient } from "@/lib/supabase/client";
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -16,8 +14,8 @@ function getFirstDayOfWeek(year: number, month: number) {
 }
 
 const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -26,6 +24,37 @@ export default function SchedulePage() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
+  const [deliveryDates, setDeliveryDates] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchOrders() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("orders")
+        .select("created_at, status")
+        .not("status", "eq", "cancelled");
+
+      if (cancelled || !data) return;
+
+      const dates = new Set<string>();
+      for (const order of data) {
+        const d = new Date(order.created_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        dates.add(key);
+      }
+      setDeliveryDates(dates);
+      setLoading(false);
+    }
+
+    fetchOrders().catch(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, []);
 
   const daysInMonth = useMemo(() => getDaysInMonth(year, month), [year, month]);
   const firstDayOfWeek = useMemo(() => getFirstDayOfWeek(year, month), [year, month]);
@@ -48,10 +77,11 @@ export default function SchedulePage() {
     }
   }
 
-  // Empty leading cells
   const leadingCells = Array.from({ length: firstDayOfWeek }, (_, i) => i);
 
-  const isDeliveryDay = (day: number) => DELIVERY_DAYS.includes(day);
+  const isDeliveryDay = (day: number) =>
+    deliveryDates.has(`${year}-${month}-${day}`);
+
   const isToday = (day: number) =>
     day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
 
@@ -60,7 +90,7 @@ export default function SchedulePage() {
       <div>
         <h1 className="text-2xl font-light text-stone-900">Delivery Schedule</h1>
         <p className="mt-1 text-sm text-stone-500">
-          Your recurring delivery dates are shown below.
+          Your scheduled delivery dates are shown below.
         </p>
       </div>
 
@@ -139,6 +169,11 @@ export default function SchedulePage() {
             Today
           </span>
         </div>
+
+        {/* Loading state */}
+        {loading && (
+          <p className="mt-4 text-xs text-stone-400 text-center">Loading schedule…</p>
+        )}
       </div>
     </div>
   );

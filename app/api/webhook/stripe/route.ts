@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import type Stripe from "stripe";
+import { createClient } from "@/lib/supabase/server";
+import { sendOrderConfirmation } from "@/lib/resend";
 
 /**
  * Stripe webhook handler for checkout.session.completed events.
@@ -19,12 +21,13 @@ export async function POST(request: Request) {
   }
 
   // In demo mode (no real Stripe key), skip signature verification
-  const isDemo = !process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.startsWith("sk_test_placeholder");
+  const isDemo =
+    !process.env.STRIPE_SECRET_KEY ||
+    process.env.STRIPE_SECRET_KEY.startsWith("sk_test_placeholder");
 
   let event: Stripe.Event;
 
   if (isDemo) {
-    // Parse the body directly in demo mode
     try {
       event = JSON.parse(body) as Stripe.Event;
     } catch {
@@ -50,7 +53,6 @@ export async function POST(request: Request) {
     }
   }
 
-  // Handle the checkout.session.completed event
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
@@ -70,9 +72,10 @@ export async function POST(request: Request) {
 
 /**
  * Processes a completed checkout session:
- * - Retrieves line items from Stripe
+ * - Retrieves metadata from the session
  * - Creates the order in Supabase with status: confirmed
- * - Creates order_items for each product
+ * - Creates order_items from metadata
+ * - Sends confirmation email via Resend
  */
 async function handleCheckoutComplete(
   session: Stripe.Checkout.Session
@@ -81,6 +84,8 @@ async function handleCheckoutComplete(
   const deliveryMethod = session.metadata?.delivery_method ?? "truck";
   const address = session.metadata?.address ?? "";
   const totalAmount = session.amount_total ?? 0;
+  const customerEmail = session.customer_details?.email ?? session.customer_email ?? "";
+  const itemsJson = session.metadata?.items ?? "[]";
 
   console.log("Processing completed checkout:", {
     sessionId: session.id,
@@ -90,36 +95,59 @@ async function handleCheckoutComplete(
     totalAmount,
   });
 
-  // In production, insert into Supabase:
-  //
-  // 1. Create the order record
-  // const { data: order, error: orderError } = await supabase
-  //   .from("orders")
-  //   .insert({
-  //     user_id: userId,
-  //     stripe_session_id: session.id,
-  //     status: "confirmed",
-  //     delivery_method: deliveryMethod,
-  //     delivery_address: address,
-  //     total_cents: totalAmount,
-  //   })
-  //   .select()
-  //   .single();
-  //
-  // 2. Fetch line items from Stripe
-  // const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-  //
-  // 3. Create order_items
-  // const orderItems = lineItems.data
-  //   .filter((item) => item.price?.metadata?.product_id)
-  //   .map((item) => ({
-  //     order_id: order.id,
-  //     product_id: item.price!.metadata.product_id,
-  //     quantity: item.quantity ?? 1,
-  //     price_cents: item.price?.unit_amount ?? 0,
-  //   }));
-  //
-  // await supabase.from("order_items").insert(orderItems);
+  const supabase = await createClient();
 
-  console.log("Order created successfully (demo mode)");
+  // 1. Create the order record
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .insert({
+      user_id: userId,
+      status: "confirmed",
+      delivery_method: deliveryMethod,
+      delivery_address: address,
+      total_amount: totalAmount,
+      qr_code_token: crypto.randomUUID(),
+    })
+    .select()
+    .single();
+
+  if (orderError) {
+    console.error("Failed to create order:", orderError.message);
+    throw new Error(`Order insert failed: ${orderError.message}`);
+  }
+
+  // 2. Create order items from metadata
+  try {
+    const items: Array<{ product_id: string; quantity: number; price_cents: number }> =
+      JSON.parse(itemsJson);
+
+    if (items.length > 0) {
+      const orderItems = items.map((item) => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price_cents: item.price_cents,
+      }));
+
+      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+      if (itemsError) {
+        console.error("Failed to insert order_items:", itemsError.message);
+      }
+    }
+  } catch {
+    // items metadata may be malformed or missing; log but don't fail the order
+    console.warn("Could not parse order items from session metadata");
+  }
+
+  // 3. Send confirmation email via Resend (only if API key is real)
+  if (customerEmail && process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes("placeholder")) {
+    try {
+      await sendOrderConfirmation(customerEmail, order.id, totalAmount);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      console.warn(`Failed to send confirmation email: ${msg}`);
+    }
+  }
+
+  console.log("Order created successfully:", order.id);
 }

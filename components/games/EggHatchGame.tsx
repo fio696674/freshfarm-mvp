@@ -3,20 +3,68 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RewardDisplay } from "./RewardDisplay";
+import { createClient } from "@/lib/supabase/client";
 
 type GameState = "idle" | "cracking" | "hatched";
 
+interface CampaignReward {
+  code: string;
+  discount_pct: number;
+}
+
 export function EggHatchGame() {
   const [state, setState] = useState<GameState>("idle");
+  const [reward, setReward] = useState<CampaignReward>({
+    code: "FRESH10",
+    discount_pct: 10,
+  });
 
-  function handleTap() {
+  async function handleTap() {
     if (state !== "idle") return;
     setState("cracking");
+
+    // Look up an active campaign while the animation plays
+    try {
+      const supabase = createClient();
+      const { data: campaign } = await supabase
+        .from("campaigns")
+        .select("*")
+        .eq("is_active", true)
+        .limit(1)
+        .single();
+
+      if (campaign) {
+        setReward({
+          code: campaign.code,
+          discount_pct: campaign.discount_pct,
+        });
+      } else {
+        setReward({ code: "FRESH10", discount_pct: 10 });
+      }
+
+      // Log the game play
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const campaignCode = campaign?.code ?? "FRESH10";
+        await supabase.from("ugc_submissions").insert({
+          user_id: user.id,
+          image_url: "game_play",
+          caption: `Played Great Eggscape - won ${campaignCode}`,
+        });
+      }
+    } catch {
+      // campaigns table may not exist; fall back to default reward
+      setReward({ code: "FRESH10", discount_pct: 10 });
+    }
 
     // Reveal the chick after the cracking animation
     setTimeout(() => {
       setState("hatched");
     }, 800);
+  }
+
+  function handlePlayAgain() {
+    setState("idle");
   }
 
   return (
@@ -72,14 +120,14 @@ export function EggHatchGame() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
             >
-              <RewardDisplay code="FRESH10" />
+              <RewardDisplay code={reward.code} discountPct={reward.discount_pct} />
             </motion.div>
 
             <motion.button
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              onClick={() => setState("idle")}
+              onClick={handlePlayAgain}
               className="mt-2 rounded-xl border border-stone-200 bg-white px-5 py-2.5 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50"
             >
               Play Again

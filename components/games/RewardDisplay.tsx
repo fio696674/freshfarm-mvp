@@ -5,9 +5,10 @@ import { Check, Copy } from "lucide-react";
 
 interface RewardDisplayProps {
   code: string;
+  discountPct?: number;
 }
 
-export function RewardDisplay({ code }: RewardDisplayProps) {
+export function RewardDisplay({ code, discountPct = 10 }: RewardDisplayProps) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -29,7 +30,7 @@ export function RewardDisplay({ code }: RewardDisplayProps) {
       <p className="mt-2 text-3xl font-bold tracking-widest text-stone-900">
         {code}
       </p>
-      <p className="mt-1 text-xs text-stone-500">10% off your next order</p>
+      <p className="mt-1 text-xs text-stone-500">{discountPct}% off your next order</p>
 
       <button
         onClick={handleCopy}

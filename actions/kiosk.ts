@@ -4,36 +4,54 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Verifies a QR token for kiosk pickup.
- * In production, this would validate the token against the database,
- * mark the order as picked up, and open the smart locker.
+ * Validates the token against the orders table, records the pickup
+ * in kiosk_pickups, and marks the order as delivered.
  */
 export async function verifyKioskPickup(
   qrToken: string,
   lockerId: string
 ): Promise<{ success: boolean; message: string; orderId?: string }> {
-  console.log(
-    `[Kiosk Pickup] Token: ${qrToken}, Locker: ${lockerId}`
-  );
-
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (!user) {
-    return {
-      success: false,
-      message: "Authentication required to verify pickup.",
-    };
+  // Find order by QR token
+  const { data: order, error: lookupError } = await supabase
+    .from("orders")
+    .select("id, status, user_id")
+    .eq("qr_code_token", qrToken)
+    .single();
+
+  if (lookupError || !order) {
+    return { success: false, message: "Invalid QR code" };
   }
 
-  // Simulate verification delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  if (order.status === "delivered" || order.status === "cancelled") {
+    return { success: false, message: `Order already ${order.status}` };
+  }
 
-  // Stub: always return success for demo
-  return {
-    success: true,
-    message: "Pickup verified successfully! Locker opened.",
-    orderId: `order_${Date.now().toString(36)}`,
-  };
+  // Record the pickup event
+  const { error: pickupError } = await supabase.from("kiosk_pickups").insert({
+    order_id: order.id,
+    locker_id: lockerId,
+    qr_scanned_at: new Date().toISOString(),
+    verified: true,
+    picked_up_at: new Date().toISOString(),
+  });
+
+  if (pickupError) {
+    console.error("Failed to record pickup:", pickupError.message);
+    return { success: false, message: "Failed to record pickup event" };
+  }
+
+  // Update order status to delivered
+  const { error: updateError } = await supabase
+    .from("orders")
+    .update({ status: "delivered" })
+    .eq("id", order.id);
+
+  if (updateError) {
+    console.error("Failed to update order status:", updateError.message);
+    return { success: false, message: "Pickup recorded but failed to update order status" };
+  }
+
+  return { success: true, message: "Pickup verified successfully", orderId: order.id };
 }

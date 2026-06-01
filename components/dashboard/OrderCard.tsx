@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 
-type OrderStatus = "delivered" | "pending" | "in_transit" | "cancelled";
+type OrderStatus = "delivered" | "pending" | "confirmed" | "assigned" | "in_transit" | "cancelled";
 
 const statusStyles: Record<
   OrderStatus,
@@ -17,6 +17,16 @@ const statusStyles: Record<
     dot: "bg-yellow-500",
     badge: "bg-yellow-50 text-yellow-700",
     label: "Pending",
+  },
+  confirmed: {
+    dot: "bg-orange-500",
+    badge: "bg-orange-50 text-orange-700",
+    label: "Confirmed",
+  },
+  assigned: {
+    dot: "bg-blue-500",
+    badge: "bg-blue-50 text-blue-700",
+    label: "Assigned",
   },
   in_transit: {
     dot: "bg-blue-500",

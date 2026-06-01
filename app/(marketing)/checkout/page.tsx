@@ -11,8 +11,11 @@ import {
   type DeliveryMethod,
 } from "@/components/checkout/DeliveryMethodSelect";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
+
+// Delivery fees now defined inside handlePay
 
 const STEPS = ["Address", "Delivery", "Payment"] as const;
 
@@ -82,6 +85,40 @@ export default function CheckoutPage() {
   const handlePay = async () => {
     setIsProcessing(true);
     try {
+      // Create order in Supabase first
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const DELIVERY_FEE_MAP: Record<DeliveryMethod, number> = { truck: 499, drone: 999, kiosk: 0 };
+      const cartSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const deliveryFee = DELIVERY_FEE_MAP[deliveryMethod];
+      const cartTotal = cartSubtotal + deliveryFee;
+
+      if (user) {
+        const { data: order } = await supabase.from("orders").insert({
+          user_id: user.id,
+          status: "confirmed",
+          delivery_method: deliveryMethod,
+          delivery_address: address,
+          subtotal: cartSubtotal,
+          delivery_fee: deliveryFee,
+          total: cartTotal,
+          stripe_payment_id: ,
+          qr_code_token: crypto.randomUUID(),
+        }).select().single();
+
+        if (order) {
+          await supabase.from("order_items").insert(
+            items.map((item) => ({
+              order_id: order.id,
+              product_id: item.id,
+              quantity: item.quantity,
+              unit_price: item.price,
+            }))
+          );
+        }
+      }
+
       const result = await createCheckoutSession(
         items.map((item) => ({
           id: item.id,
@@ -93,10 +130,8 @@ export default function CheckoutPage() {
         address
       );
 
-      // Clear cart before redirect
       clearCart();
 
-      // Redirect to Stripe checkout (or demo confirmation)
       if (result.url.startsWith("http")) {
         window.location.href = result.url;
       } else {

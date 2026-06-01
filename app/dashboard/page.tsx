@@ -1,39 +1,66 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Package, Calendar } from "lucide-react";
 import { OrderCard } from "@/components/dashboard/OrderCard";
-
-const mockUser = { full_name: "John Smith", email: "john@example.com" };
-
-const mockOrders = [
-  {
-    id: "ord_001",
-    status: "delivered" as const,
-    total: 1798,
-    created_at: "2026-05-28",
-    items_count: 2,
-    delivery_method: "truck",
-  },
-  {
-    id: "ord_002",
-    status: "in_transit" as const,
-    total: 899,
-    created_at: "2026-05-30",
-    items_count: 1,
-    delivery_method: "drone",
-  },
-];
-
-const quickActions = [
-  { label: "Browse Products", href: "/", icon: Package },
-  { label: "View Schedule", href: "/dashboard/schedule", icon: Calendar },
-];
+import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
-  const upcomingOrders = mockOrders.filter((o) => o.status === "in_transit");
-  const recentOrders = mockOrders;
+  const [fullName, setFullName] = useState("there");
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        // Fetch profile for greeting
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", data.user.id)
+          .single();
+        if (profile?.full_name) {
+          setFullName(profile.full_name.split(" ")[0]);
+        }
+
+        // Fetch recent orders
+        const { data: recentOrders } = await supabase
+          .from("orders")
+          .select("id, status, total, created_at, delivery_method")
+          .eq("user_id", data.user.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        setOrders(recentOrders || []);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const upcomingOrders = orders.filter(
+    (o) => o.status === "in_transit" || o.status === "assigned"
+  );
+  const recentOrders = orders;
+
+  const quickActions = [
+    { label: "Browse Products", href: "/", icon: Package },
+    { label: "View Schedule", href: "/dashboard/schedule", icon: Calendar },
+  ];
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-10">
+        <div className="h-10 w-64 animate-pulse rounded bg-stone-100" />
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 animate-pulse rounded-2xl bg-stone-100" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-10">
@@ -44,7 +71,7 @@ export default function DashboardPage() {
         transition={{ duration: 0.35 }}
       >
         <h1 className="text-2xl font-light text-stone-900">
-          Welcome back, {mockUser.full_name.split(" ")[0]}
+          Welcome back, {fullName}
         </h1>
         <p className="mt-1 text-stone-500">
           Here&apos;s what&apos;s happening with your orders.
@@ -66,18 +93,30 @@ export default function DashboardPage() {
       )}
 
       {/* Recent orders */}
-      <section>
-        <h2 className="mb-4 text-lg font-medium text-stone-900">Recent Orders</h2>
-        <div className="space-y-3">
-          {recentOrders.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))}
-        </div>
-      </section>
+      {recentOrders.length > 0 ? (
+        <section>
+          <h2 className="mb-4 text-lg font-medium text-stone-900">
+            Recent Orders
+          </h2>
+          <div className="space-y-3">
+            {recentOrders.map((order) => (
+              <OrderCard key={order.id} order={order} />
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-stone-100 bg-white p-8 text-center">
+          <p className="text-stone-500">
+            No orders yet. Place your first order to see it here!
+          </p>
+        </section>
+      )}
 
       {/* Quick actions */}
       <section>
-        <h2 className="mb-4 text-lg font-medium text-stone-900">Quick Actions</h2>
+        <h2 className="mb-4 text-lg font-medium text-stone-900">
+          Quick Actions
+        </h2>
         <div className="flex flex-wrap gap-3">
           {quickActions.map((action) => (
             <Link

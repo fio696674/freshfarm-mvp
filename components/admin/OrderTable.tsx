@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
-type OrderStatus = "pending" | "confirmed" | "in_transit" | "delivered";
+type OrderStatus = "pending" | "confirmed" | "in_transit" | "delivered" | "preparing";
 
 interface Order {
   id: string;
@@ -14,57 +14,6 @@ interface Order {
   deliveryMethod: string;
   date: string;
 }
-
-const defaultOrders: Order[] = [
-  {
-    id: "ORD-1001",
-    customer: "Sarah Mitchell",
-    status: "pending",
-    total: "$42.99",
-    deliveryMethod: "Truck",
-    date: "May 28, 2026",
-  },
-  {
-    id: "ORD-1002",
-    customer: "James Park",
-    status: "confirmed",
-    total: "$27.50",
-    deliveryMethod: "Drone",
-    date: "May 28, 2026",
-  },
-  {
-    id: "ORD-1003",
-    customer: "Maria Garcia",
-    status: "in_transit",
-    total: "$65.00",
-    deliveryMethod: "Truck",
-    date: "May 27, 2026",
-  },
-  {
-    id: "ORD-1004",
-    customer: "David Chen",
-    status: "delivered",
-    total: "$34.75",
-    deliveryMethod: "Drone",
-    date: "May 27, 2026",
-  },
-  {
-    id: "ORD-1005",
-    customer: "Emily Johnson",
-    status: "confirmed",
-    total: "$51.20",
-    deliveryMethod: "Truck",
-    date: "May 26, 2026",
-  },
-  {
-    id: "ORD-1006",
-    customer: "Alex Thompson",
-    status: "delivered",
-    total: "$19.99",
-    deliveryMethod: "Drone",
-    date: "May 26, 2026",
-  },
-];
 
 const statusConfig: Record<
   OrderStatus,
@@ -79,6 +28,11 @@ const statusConfig: Record<
     label: "Confirmed",
     dotColor: "bg-blue-400",
     textColor: "text-blue-700",
+  },
+  preparing: {
+    label: "Preparing",
+    dotColor: "bg-orange-400",
+    textColor: "text-orange-700",
   },
   in_transit: {
     label: "In Transit",
@@ -102,11 +56,52 @@ const filterTabs: { label: string; value: OrderStatus | "all" }[] = [
 
 export function OrderTable() {
   const [activeFilter, setActiveFilter] = useState<OrderStatus | "all">("all");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOrders() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*, profiles(full_name)")
+        .order("created_at", { ascending: false });
+
+      if (error || !data) {
+        console.error("Failed to fetch orders:", error);
+        setLoading(false);
+        return;
+      }
+
+      const mapped: Order[] = data.map((o) => {
+        const profiles = o.profiles as { full_name: string }[] | null;
+        const profile = profiles?.[0] ?? null;
+        const dateObj = new Date(o.created_at);
+        return {
+          id: o.id,
+          customer: profile?.full_name ?? "—",
+          status: o.status as OrderStatus,
+          total: `$${(o.total_amount / 100).toFixed(2)}`,
+          deliveryMethod: o.delivery_method ?? "—",
+          date: dateObj.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+        };
+      });
+
+      setOrders(mapped);
+      setLoading(false);
+    }
+
+    fetchOrders();
+  }, []);
 
   const filteredOrders =
     activeFilter === "all"
-      ? defaultOrders
-      : defaultOrders.filter((o) => o.status === activeFilter);
+      ? orders
+      : orders.filter((o) => o.status === activeFilter);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-stone-100 bg-white">
@@ -142,50 +137,54 @@ export function OrderTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
-            {filteredOrders.map((order) => {
-              const status = statusConfig[order.status];
-              return (
-                <tr
-                  key={order.id}
-                  className="transition-colors hover:bg-stone-50"
-                >
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-stone-900">
-                    {order.id}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-stone-700">
-                    {order.customer}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span className="inline-flex items-center gap-2 text-sm">
-                      <span
-                        className={cn("size-2 rounded-full", status.dotColor)}
-                      />
-                      <span className={cn("font-medium", status.textColor)}>
-                        {status.label}
-                      </span>
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-stone-900">
-                    {order.total}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-stone-600">
-                    {order.deliveryMethod}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-stone-500">
-                    {order.date}
-                  </td>
-                </tr>
-              );
-            })}
-            {filteredOrders.length === 0 && (
+            {loading ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-6 py-12 text-center text-sm text-stone-400"
-                >
+                <td colSpan={6} className="px-6 py-12 text-center text-sm text-stone-400">
+                  Loading orders...
+                </td>
+              </tr>
+            ) : filteredOrders.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-sm text-stone-400">
                   No orders found.
                 </td>
               </tr>
+            ) : (
+              filteredOrders.map((order) => {
+                const status = statusConfig[order.status] ?? statusConfig.pending;
+                return (
+                  <tr
+                    key={order.id}
+                    className="transition-colors hover:bg-stone-50"
+                  >
+                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-stone-900">
+                      {order.id.slice(0, 8)}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-stone-700">
+                      {order.customer}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span className="inline-flex items-center gap-2 text-sm">
+                        <span
+                          className={cn("size-2 rounded-full", status.dotColor)}
+                        />
+                        <span className={cn("font-medium", status.textColor)}>
+                          {status.label}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-stone-900">
+                      {order.total}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-stone-600">
+                      {order.deliveryMethod}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-stone-500">
+                      {order.date}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

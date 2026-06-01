@@ -21,39 +21,18 @@ interface DeliveryItem {
   items: string;
 }
 
-const mockQueue: DeliveryItem[] = [
-  {
-    id: "ORD-1002",
-    customerName: "James Park",
-    address: "142 Oak Street, Portland, OR 97201",
-    items: "1 dozen eggs, 1 lb butter",
-  },
-  {
-    id: "ORD-1005",
-    customerName: "Emily Johnson",
-    address: "88 Maple Avenue, Portland, OR 97205",
-    items: "2 dozen eggs",
-  },
-  {
-    id: "ORD-1008",
-    customerName: "Rachel Adams",
-    address: "305 Pine Road, Portland, OR 97210",
-    items: "1 dozen eggs, 1 quart milk",
-  },
-  {
-    id: "ORD-1009",
-    customerName: "Tom Nakamura",
-    address: "21 Cedar Lane, Portland, OR 97214",
-    items: "3 dozen eggs",
-  },
-];
+interface DeliveryQueueProps {
+  queue: DeliveryItem[];
+  loading?: boolean;
+  onAssigned?: () => void;
+}
 
 interface AssignmentForm {
   vehicleType: string;
   driverName: string;
 }
 
-export function DeliveryQueue() {
+export function DeliveryQueue({ queue, loading = false, onAssigned }: DeliveryQueueProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<
     Record<string, AssignmentForm>
@@ -87,16 +66,27 @@ export function DeliveryQueue() {
 
     setSubmitting(orderId);
     try {
-      await assignDelivery(orderId, form.vehicleType, form.driverName);
-      setExpandedId(null);
+      const result = await assignDelivery(orderId, form.vehicleType, form.driverName);
+      if (result.success) {
+        setExpandedId(null);
+        onAssigned?.();
+      }
     } finally {
       setSubmitting(null);
     }
   }
 
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-stone-100 bg-white p-12 text-center text-sm text-stone-400">
+        Loading unassigned orders...
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {mockQueue.map((item) => {
+      {queue.map((item) => {
         const isExpanded = expandedId === item.id;
         const form = assignments[item.id] ?? {
           vehicleType: "truck",
@@ -115,7 +105,7 @@ export function DeliveryQueue() {
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-semibold text-stone-900">
-                    {item.id}
+                    {item.id.slice(0, 8)}
                   </span>
                   <span className="text-sm text-stone-700">
                     {item.customerName}
@@ -188,7 +178,7 @@ export function DeliveryQueue() {
         );
       })}
 
-      {mockQueue.length === 0 && (
+      {queue.length === 0 && (
         <div className="rounded-2xl border border-stone-100 bg-white p-12 text-center text-sm text-stone-400">
           No unassigned orders in the queue.
         </div>

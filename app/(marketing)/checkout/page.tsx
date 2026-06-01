@@ -100,9 +100,9 @@ export default function CheckoutPage() {
           status: "confirmed",
           delivery_method: deliveryMethod,
           delivery_address: address,
-          subtotal: cartSubtotal,
-          delivery_fee: deliveryFee,
-          total: cartTotal,
+          
+          
+          total_amount: cartTotal,
           stripe_payment_id: "demo_" + Date.now(),
           qr_code_token: crypto.randomUUID(),
         }).select().single();

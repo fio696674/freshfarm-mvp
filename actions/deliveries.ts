@@ -1,21 +1,38 @@
 "use server";
 
-/**
- * Assigns a delivery to a driver with a specified vehicle type.
- * This is a stub that logs the assignment and returns success.
- * Will be connected to Supabase in a future task.
- */
+import { createClient } from "@/lib/supabase/server";
+
 export async function assignDelivery(
   orderId: string,
   vehicleType: string,
   driverName: string
 ): Promise<{ success: boolean; message: string }> {
-  console.log(
-    `[Delivery Assignment] Order: ${orderId}, Vehicle: ${vehicleType}, Driver: ${driverName}`
-  );
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Simulate a brief delay for realistic UX
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  if (!user) return { success: false, message: "Not authenticated" };
+
+  const { error: deliveryError } = await supabase.from("deliveries").insert({
+    order_id: orderId,
+    driver_id: user.id,
+    vehicle_type: vehicleType,
+    status: "assigned",
+  });
+
+  if (deliveryError) {
+    return { success: false, message: deliveryError.message };
+  }
+
+  const { error: orderError } = await supabase
+    .from("orders")
+    .update({ status: "preparing" })
+    .eq("id", orderId);
+
+  if (orderError) {
+    return { success: false, message: orderError.message };
+  }
 
   return {
     success: true,

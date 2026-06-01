@@ -1,46 +1,17 @@
-import {
-  ShoppingBag,
-  DollarSign,
-  Users,
-  Truck,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react";
+import { ShoppingBag, DollarSign, Users, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface MetricCard {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  trend: number;
+interface MetricsCardsProps {
+  totalOrders: number;
+  revenue: number;
+  activeCustomers: number;
+  pendingOrders: number;
+  loading?: boolean;
 }
 
-const metrics: MetricCard[] = [
-  {
-    label: "Total Orders",
-    value: "156",
-    icon: <ShoppingBag className="size-5" />,
-    trend: 12,
-  },
-  {
-    label: "Revenue",
-    value: "$2,847",
-    icon: <DollarSign className="size-5" />,
-    trend: 12,
-  },
-  {
-    label: "Active Customers",
-    value: "89",
-    icon: <Users className="size-5" />,
-    trend: -3,
-  },
-  {
-    label: "Pending Deliveries",
-    value: "12",
-    icon: <Truck className="size-5" />,
-    trend: 5,
-  },
-];
+function formatCents(cents: number): string {
+  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 const iconBgColors = [
   "bg-green-100 text-green-700",
@@ -49,7 +20,36 @@ const iconBgColors = [
   "bg-violet-100 text-violet-700",
 ];
 
-export function MetricsCards() {
+export function MetricsCards({
+  totalOrders,
+  revenue,
+  activeCustomers,
+  pendingOrders,
+  loading = false,
+}: MetricsCardsProps) {
+  const metrics = [
+    {
+      label: "Total Orders",
+      value: loading ? "—" : String(totalOrders),
+      icon: <ShoppingBag className="size-5" />,
+    },
+    {
+      label: "Revenue",
+      value: loading ? "—" : formatCents(revenue),
+      icon: <DollarSign className="size-5" />,
+    },
+    {
+      label: "Active Customers",
+      value: loading ? "—" : String(activeCustomers),
+      icon: <Users className="size-5" />,
+    },
+    {
+      label: "Pending Orders",
+      value: loading ? "—" : String(pendingOrders),
+      icon: <Truck className="size-5" />,
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {metrics.map((metric, index) => (
@@ -65,20 +65,6 @@ export function MetricsCards() {
               )}
             >
               {metric.icon}
-            </div>
-            <div
-              className={cn(
-                "flex items-center gap-1 text-sm font-medium",
-                metric.trend >= 0 ? "text-green-600" : "text-red-500"
-              )}
-            >
-              {metric.trend >= 0 ? (
-                <TrendingUp className="size-4" />
-              ) : (
-                <TrendingDown className="size-4" />
-              )}
-              {metric.trend >= 0 ? "+" : ""}
-              {metric.trend}%
             </div>
           </div>
           <div className="mt-4">

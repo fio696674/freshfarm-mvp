@@ -104,14 +104,14 @@ export function Header() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger>
-                  <button className="flex items-center gap-2 rounded-full p-0.5 transition hover:ring-2 hover:ring-green-200">
+                  <div className="flex cursor-pointer items-center gap-2 rounded-full p-0.5 transition hover:ring-2 hover:ring-green-200">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={avatarUrl ?? undefined} alt="Profile" />
                       <AvatarFallback className="bg-green-100 text-xs font-semibold text-green-700">
                         {userInitials}
                       </AvatarFallback>
                     </Avatar>
-                  </button>
+                  </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <div className="px-2 py-1.5 text-sm font-medium text-stone-900">

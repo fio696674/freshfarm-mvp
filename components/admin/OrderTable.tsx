@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
 
 type OrderStatus = "pending" | "confirmed" | "in_transit" | "delivered";
 
@@ -106,8 +105,8 @@ export function OrderTable() {
 
   const filteredOrders =
     activeFilter === "all"
-      ? mockOrders
-      : mockOrders.filter((o) => o.status === activeFilter);
+      ? defaultOrders
+      : defaultOrders.filter((o) => o.status === activeFilter);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-stone-100 bg-white">

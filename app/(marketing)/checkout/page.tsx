@@ -103,7 +103,7 @@ export default function CheckoutPage() {
           subtotal: cartSubtotal,
           delivery_fee: deliveryFee,
           total: cartTotal,
-          stripe_payment_id: ,
+          stripe_payment_id: "demo_" + Date.now(),
           qr_code_token: crypto.randomUUID(),
         }).select().single();
 

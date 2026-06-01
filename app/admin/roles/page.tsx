@@ -122,7 +122,7 @@ export default function RolesPage() {
                         <User className="size-4" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-stone-900">{user.full_name ?? "—"}</p>
+                        <p className="text-sm font-medium text-stone-900">{user.full_name ?? "â€”"}</p>
                         {user.id === currentUserId && <p className="text-xs text-green-600">(You)</p>}
                       </div>
                     </div>

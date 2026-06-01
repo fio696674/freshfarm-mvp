@@ -1,7 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -10,34 +11,6 @@ import { toast } from "sonner";
 import { useCart } from "@/stores/cart";
 import { formatCurrency } from "@/lib/utils";
 import { QuantityStepper } from "@/components/cart/QuantityStepper";
-import { useState } from "react";
-
-const mockProducts = [
-  {
-    id: "1",
-    name: "Farm Fresh Dozen",
-    description: "12 organic eggs, less than 10 days old",
-    price: 899,
-    image_url: "/egg-dozen.jpg",
-    stock_qty: 100,
-  },
-  {
-    id: "2",
-    name: "Jumbo 18-Pack",
-    description: "18 jumbo eggs for the whole family",
-    price: 1299,
-    image_url: "/egg-18pack.jpg",
-    stock_qty: 50,
-  },
-  {
-    id: "3",
-    name: "Family Bundle",
-    description: "24 eggs + seasonal extras — best value!",
-    price: 2299,
-    image_url: "/egg-bundle.jpg",
-    stock_qty: 30,
-  },
-];
 
 export default function ProductDetailPage({
   params,
@@ -45,20 +18,36 @@ export default function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const product = mockProducts.find((p) => p.id === id);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!product) {
-    notFound();
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single()
+      .then(({ data }) => {
+        setProduct(data);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-20">
+        <div className="h-96 animate-pulse rounded-2xl bg-stone-100" />
+      </div>
+    );
   }
+
+  if (!product) return notFound();
 
   return <ProductDetail product={product} />;
 }
 
-function ProductDetail({
-  product,
-}: {
-  product: (typeof mockProducts)[number];
-}) {
+function ProductDetail({ product }: { product: any }) {
   const addItem = useCart((s) => s.addItem);
   const [quantity, setQuantity] = useState(1);
 
@@ -93,14 +82,20 @@ function ProductDetail({
           transition={{ duration: 0.4 }}
           className="relative aspect-square overflow-hidden rounded-2xl"
         >
-          <Image
-            src={product.image_url}
-            alt={product.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            priority
-          />
+          {product.image_url ? (
+            <Image
+              src={product.image_url}
+              alt={product.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              priority
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-yolk-100 to-cream-200">
+              <span className="text-8xl">🥚</span>
+            </div>
+          )}
         </motion.div>
 
         {/* Details */}

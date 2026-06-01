@@ -34,13 +34,19 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       <Link href={`/products/${product.id}`} className="block">
         <div className="relative aspect-[4/3] overflow-hidden">
-          <Image
-            src={product.image_url}
-            alt={product.name}
-            fill
-            className="rounded-t-2xl object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          />
+          {product.image_url ? (
+            <Image
+              src={product.image_url}
+              alt={product.name}
+              fill
+              className="rounded-t-2xl object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-yolk-100 to-cream-200 transition-transform duration-300 group-hover:scale-105">
+              <span className="text-6xl">🥚</span>
+            </div>
+          )}
         </div>
       </Link>
 

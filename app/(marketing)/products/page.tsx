@@ -1,45 +1,43 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ProductGrid } from "@/components/products/ProductGrid";
-
-const mockProducts = [
-  {
-    id: "1",
-    name: "Farm Fresh Dozen",
-    description: "12 organic eggs, less than 10 days old",
-    price: 899, // $8.99 in cents
-    image_url: "/egg-dozen.jpg",
-    stock_qty: 100,
-  },
-  {
-    id: "2",
-    name: "Jumbo 18-Pack",
-    description: "18 jumbo eggs for the whole family",
-    price: 1299, // $12.99 in cents
-    image_url: "/egg-18pack.jpg",
-    stock_qty: 50,
-  },
-  {
-    id: "3",
-    name: "Family Bundle",
-    description: "24 eggs + seasonal extras — best value!",
-    price: 2299, // $22.99 in cents
-    image_url: "/egg-bundle.jpg",
-    stock_qty: 30,
-  },
-];
+import { createClient } from "@/lib/supabase/client";
 
 export default function ProductsPage() {
-  return (
-    <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-      <h1 className="text-4xl font-light text-stone-900">Our Eggs</h1>
-      <p className="mt-3 text-stone-500">
-        Farm-fresh, pasture-raised eggs delivered to your door.
-      </p>
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-      <div className="mt-10">
-        <ProductGrid products={mockProducts} />
-      </div>
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("products")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        setProducts(data || []);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <h1 className="mb-8 text-4xl font-light text-stone-900">Our Eggs</h1>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-80 animate-pulse rounded-2xl bg-stone-100" />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+      <h1 className="mb-8 text-4xl font-light text-stone-900">Our Eggs</h1>
+      <ProductGrid products={products} />
     </section>
   );
 }
